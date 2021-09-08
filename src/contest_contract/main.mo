@@ -177,11 +177,15 @@ actor {
           let num_winners: Nat = Iter.size(Array.vals(winners));
 
           // disburse funds
-          let prize_amount = contest.stake / num_winners;
-          for (winner in Array.vals(winners)) {
-            let _ = credit(winner, prize_amount);
+          if (num_winners == 0) {
+            let _ = credit(contest.default_receiver, contest.stake);
+          } else {
+            let prize_amount = contest.stake / num_winners;
+              for (winner in Array.vals(winners)) {
+                let _ = credit(winner, prize_amount);
+              };
+            let _ = credit(contest.default_receiver, num_winners * prize_amount);
           };
-          let _ = credit(contest.default_receiver, num_winners * prize_amount);
 
           // set is_resolved for the contest so it can't be resolved again
           contest_book.put(contest_id, (contest, submissions, ballots, true));
