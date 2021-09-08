@@ -1,5 +1,12 @@
 type Time = int;
+type Submission = text;
 type PlayTokenAmount = nat;
+type JudgeReputation = int;
+type JudgeIntrinsicInfo = 
+ record {
+   description: text;
+   friendly_name: text;
+ };
 type Judge = principal;
 type Decision = opt principal;
 type ContestStatus = 
@@ -9,6 +16,11 @@ type ContestStatus =
                   Ballot;
                 };
    contest: Contest;
+   is_resolved: bool;
+   submissions: vec record {
+                      principal;
+                      Submission;
+                    };
  };
 type ContestResults = 
  record {
@@ -17,6 +29,10 @@ type ContestResults =
                   Ballot;
                 };
    contest: Contest;
+   submissions: vec record {
+                      principal;
+                      Submission;
+                    };
    winners: vec principal;
  };
 type ContestId = text;
@@ -28,10 +44,6 @@ type Contest =
    description: text;
    judges: vec Judge;
    stake: PlayTokenAmount;
-   submissions: vec record {
-                      principal;
-                      text;
-                    };
  };
 type Ballot = 
  record {
@@ -40,12 +52,25 @@ type Ballot =
  };
 service : {
   check_and_maybe_resolve: (ContestId) -> (opt ContestResults);
-  check_balances: () -> (vec record {
-                               principal;
-                               PlayTokenAmount;
-                             }) query;
-  faucet: (ContestId, Decision) -> ();
+  downvote_judge_reputation: (Judge) -> (bool, text);
+  faucet: () -> (bool, text);
+  list_balances: () -> (vec record {
+                              principal;
+                              PlayTokenAmount;
+                            }) query;
+  list_judges: () ->
+   (vec record {
+          Judge;
+          record {
+            JudgeIntrinsicInfo;
+            JudgeReputation;
+          };
+        }) query;
   lookup: (ContestId) -> (opt ContestStatus) query;
   make_contest: (Contest) -> (bool, text);
+  register_as_judge: (JudgeIntrinsicInfo) -> ();
+  send: (principal, PlayTokenAmount) -> (bool, text);
+  submit: (ContestId, text) -> (bool, text);
+  upvote_judge_reputation: (Judge) -> (bool, text);
   vote: (ContestId, Decision) -> ();
 }

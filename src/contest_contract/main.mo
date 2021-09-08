@@ -243,7 +243,7 @@ actor {
     };
     switch (ledger.get(account)) {
       case null {
-        return (false, "insufficient funds");
+        return (false, "nonexistent account");
       };
       case (?balance) {
         if (amount <= balance) {
