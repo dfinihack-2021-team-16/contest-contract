@@ -47,7 +47,6 @@ actor {
     default_receiver: Principal;  // who gets the funds if no winner
   };
 
-
   public type ContestStatus = {
     contest: Contest;
     submissions: [(Principal, Submission)];
@@ -83,24 +82,19 @@ actor {
       };
       case null {};
     };
-
-    switch (ledger.get(caller)) {
-      case null return (false, "caller does not have enough funds");
-      case (?caller_balance) {
-        if (contest.stake <= caller_balance) {
-          ledger.put(caller, caller_balance - contest.stake);
-          contest_book.put(contest.contest_id,
-            (
-              contest,
-              Map.HashMap<Principal, Text>(0, PrincipalLib.equal, PrincipalLib.hash),
-              Map.HashMap<Judge, Ballot>(0, PrincipalLib.equal, PrincipalLib.hash),
-              false,
-            ));
-          return (true, "succeeded in creating contest")
-        } else {
-          return (false, "caller does not have enough funds")
-        };
-      };
+    let (funding_successful, message) = debit(caller, contest.stake);
+    if (funding_successful) {
+      contest_book.put(contest.contest_id,
+        (
+          contest,
+          Map.HashMap<Principal, Text>(0, PrincipalLib.equal, PrincipalLib.hash),
+          Map.HashMap<Judge, Ballot>(0, PrincipalLib.equal, PrincipalLib.hash),
+          false,
+        )
+      );
+      return (true, "succeeded in creating contest")
+    } else {
+      return (false, message);
     };
   };
 
@@ -181,9 +175,9 @@ actor {
             let _ = credit(contest.default_receiver, contest.stake);
           } else {
             let prize_amount = contest.stake / num_winners;
-              for (winner in Array.vals(winners)) {
-                let _ = credit(winner, prize_amount);
-              };
+            for (winner in Array.vals(winners)) {
+              let _ = credit(winner, prize_amount);
+            };
             let _ = credit(contest.default_receiver, num_winners * prize_amount);
           };
 
@@ -217,7 +211,39 @@ actor {
     };
   };
 
+  public shared ({caller}) func send(receiver: Principal, amount: PlayTokenAmount): async (Bool, Text) {
+    let (success, message) = debit(caller, amount);
+    if (success) {
+      let _ = credit(receiver, amount);
+      return (true, "succeeded in sending play tokens")
+    } else {
+      return (false, message);
+    };
+  };
+
+  func debit(account: Principal, amount: PlayTokenAmount): (Bool, Text) {
+    if (amount <= 0) {
+      return (false, "amount must be positive and nonzero");
+    };
+    switch (ledger.get(account)) {
+      case null {
+        return (false, "insufficient funds");
+      };
+      case (?balance) {
+        if (amount <= balance) {
+          ledger.put(account, balance - amount);
+          return (true, "debited funds");
+        } else {
+          return (false, "insufficient funds")
+        }
+      };
+    };
+  };
+
   func credit(account: Principal, amount: PlayTokenAmount): (Bool, Text) {
+    if (amount <= 0) {
+      return (false, "amount must be positive and nonzero");
+    };
     switch (ledger.get(account)) {
       case null {
         ledger.put(account, amount);
