@@ -47,10 +47,12 @@ actor {
     default_receiver: Principal;  // who gets the funds if no winner
   };
 
+
   public type ContestStatus = {
     contest: Contest;
     submissions: [(Principal, Submission)];
     ballots: [(Judge, Ballot)];
+    is_resolved: Bool;
   };
 
   public type ContestResults = {
@@ -69,7 +71,8 @@ actor {
     return aa;
   };
 
-  let contest_book = Map.HashMap<ContestId, (Contest, SubmissionMap, BallotMap)>(0, Text.equal, Text.hash);
+  // last bool is whether the contest is resolved.
+  let contest_book = Map.HashMap<ContestId, (Contest, SubmissionMap, BallotMap, Bool)>(0, Text.equal, Text.hash);
   let ledger = Map.HashMap<Principal, PlayTokenAmount>(0, PrincipalLib.equal, PrincipalLib.hash);
 
   // returns whether creating the contest was successful
@@ -90,7 +93,8 @@ actor {
             (
               contest,
               Map.HashMap<Principal, Text>(0, PrincipalLib.equal, PrincipalLib.hash),
-              Map.HashMap<Judge, Ballot>(0, PrincipalLib.equal, PrincipalLib.hash)
+              Map.HashMap<Judge, Ballot>(0, PrincipalLib.equal, PrincipalLib.hash),
+              false,
             ));
           return (true, "succeeded in creating contest")
         } else {
@@ -100,12 +104,11 @@ actor {
     };
   };
 
-  /// The text in the submission is intended to be a url. A principal can only submit once to each contest.
   public shared ({caller}) func submit(contest_id: ContestId, text: Text): async (Bool, Text) {
     switch (contest_book.get(contest_id)) {
       case null return (false, "contest_id not recognized");
-      case (?(contest, submissions, ballots)) {
-        if (Time.now() < contest.decision_time) {
+      case (?(contest, submissions, ballots, is_resolved)) {
+        if (not is_resolved and Time.now() < contest.decision_time) {
           switch (submissions.get(caller)) {
             case null {
               submissions.put(caller, text);
@@ -126,8 +129,8 @@ actor {
     // dx note: it was hard to figure out how to handle Option types.
     switch (contest_book.get(contest_id)) {
       case null return;
-      case (?(contest, submissions, ballots)) {
-        if (Array.find<Judge>(contest.judges, func (judge: Judge) { judge == caller }) != null) {
+      case (?(contest, submissions, ballots, is_resolved)) {
+        if (not is_resolved and Array.find<Judge>(contest.judges, func (judge: Judge) { judge == caller }) != null) {
           ballots.put(caller, {voter = caller; decision = decision;});
           return;
         } else {
@@ -142,9 +145,8 @@ actor {
     // TODO: distinguish between failure modes in return value
     switch (contest_book.get(contest_id)) {
       case null return null;
-      case (?(contest, submissions, ballots)) {
-        if (contest.decision_time <= Time.now()) {
-
+      case (?(contest, submissions, ballots, is_resolved)) {
+        if (not is_resolved and contest.decision_time <= Time.now()) {
           // tally votes
           let tallies = Map.HashMap<Principal, Nat>(0, PrincipalLib.equal, PrincipalLib.hash);
           for ((judge, ballot) in ballots.entries()) {
@@ -181,6 +183,9 @@ actor {
           };
           let _ = credit(contest.default_receiver, num_winners * prize_amount);
 
+          // set is_resolved for the contest so it can't be resolved again
+          contest_book.put(contest_id, (contest, submissions, ballots, true));
+
           return ?{
             contest = contest;
             submissions = freeze_map(submissions);
@@ -197,11 +202,12 @@ actor {
   public shared query func lookup(contestId: ContestId) : async ?ContestStatus {
     switch (contest_book.get(contestId)) {
       case null return null;
-      case (?(contest, submissions, ballots)) {
+      case (?(contest, submissions, ballots, is_resolved)) {
         return ?{
           contest = contest;
           submissions = freeze_map(submissions);
           ballots = freeze_map(ballots);
+          is_resolved = is_resolved;
         }
       }
     };
