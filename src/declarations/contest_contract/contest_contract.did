@@ -1,0 +1,47 @@
+type Time = int;
+type PlayTokenAmount = nat;
+type Judge = principal;
+type Decision = opt principal;
+type ContestStatus = 
+ record {
+   ballots: vec record {
+                  Judge;
+                  Ballot;
+                };
+   contest: Contest;
+ };
+type ContestResults = 
+ record {
+   ballots: vec record {
+                  Judge;
+                  Ballot;
+                };
+   contest: Contest;
+   winners: vec principal;
+ };
+type ContestId = text;
+type Contest = 
+ record {
+   contest_id: ContestId;
+   decision_time: Time;
+   default_receiver: principal;
+   description: text;
+   judges: vec Judge;
+   stake: PlayTokenAmount;
+   submissions: vec record {
+                      principal;
+                      text;
+                    };
+ };
+type Ballot = 
+ record {
+   decision: Decision;
+   voter: Judge;
+ };
+service : {
+  check_and_maybe_resolve: (ContestId) -> (opt ContestResults);
+  faucet: (ContestId, Decision) -> ();
+  lookup: (ContestId) -> (opt ContestStatus) query;
+  make_contest: (Contest) -> (bool, text);
+  vote: (ContestId, Decision) -> ();
+}
