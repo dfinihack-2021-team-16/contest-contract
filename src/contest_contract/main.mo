@@ -256,7 +256,7 @@ actor {
     };
   };
 
-  public shared ({caller}) func faucet(contest: ContestId, decision: Decision): async (Bool, Text) {
+  public shared ({caller}) func faucet(): async (Bool, Text) {
     // add tokens to caller if they are a new user
     switch (ledger.get(caller)) {
       case null {
@@ -272,6 +272,10 @@ actor {
         };
       };
     };
+  };
+
+  public shared query func check_balances(): async [(Principal, PlayTokenAmount)] {
+    return freeze_map(ledger);
   };
 };
 
