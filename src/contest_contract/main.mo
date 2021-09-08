@@ -100,6 +100,7 @@ actor {
     };
   };
 
+  /// The text in the submission is intended to be a url. A principal can only submit once to each contest.
   public shared ({caller}) func submit(contest_id: ContestId, text: Text): async (Bool, Text) {
     switch (contest_book.get(contest_id)) {
       case null return (false, "contest_id not recognized");
