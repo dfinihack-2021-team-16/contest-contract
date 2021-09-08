@@ -332,7 +332,6 @@ actor {
   };
 
   public shared ({caller}) func faucet(): async (Bool, Text) {
-    // add tokens to caller if they are a new user
     switch (ledger.get(caller)) {
       case null {
         let _ = credit(caller, 10000);
@@ -353,4 +352,3 @@ actor {
     return freeze_map(ledger);
   };
 };
-

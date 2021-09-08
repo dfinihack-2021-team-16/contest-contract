@@ -1,20 +1,18 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width">
-    <title>contest_contract</title>
-    <base href="/">
-
-    <link type="text/css" rel="stylesheet" href="main.css" />
+    <meta charset="utf-8">
+    <title>Summer Contest</title>
 </head>
 <body>
-    <img src="logo.png" alt="DFINITY logo" />
-    <section>
-        <label for="name">Enter your name: &nbsp;</label>
-        <input id="name" alt="Name" type="text" />
-        <button id="clickMeBtn">Click Me!</button>
-    </section>
-    <section id="greeting"></section>
+    <form id="create-contest">
+        <p><label>Contest description: <textarea name="description">Here is a contest to judge which dog is the cutest dog</textarea></label></p>
+        <p><label>Stake: <input type="number" min="1" name="stake" value="27683" /></label></p>
+        <p><label>Contest end time: <input type="datetime-local" name="endTime" value="2022-02-02T02:02" /></label></p>
+        <p><button type="submit">Submit</button></p>
+    </form>
+
+    <p><button id="get_balance">Get balance</button></p>
+    <pre id="balance"></pre>
 </body>
 </html>

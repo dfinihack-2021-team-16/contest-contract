@@ -29,6 +29,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(ContestResults)],
         [],
       ),
+    'check_balances' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, PlayTokenAmount))],
+        ['query'],
+      ),
     'faucet' : IDL.Func([ContestId, Decision], [], []),
     'lookup' : IDL.Func([ContestId], [IDL.Opt(ContestStatus)], ['query']),
     'make_contest' : IDL.Func([Contest], [IDL.Bool, IDL.Text], []),
