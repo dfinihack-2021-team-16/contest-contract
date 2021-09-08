@@ -1,6 +1,8 @@
 import Map "mo:base/HashMap";
 import List "mo:base/List";
 import Array "mo:base/Array";
+import TrieSet "mo:base/TrieSet";
+
 //import Option "mo:base/Option";
 
 
@@ -61,6 +63,19 @@ actor {
     winners: [Principal];
   };
 
+  public type JudgeReputation = Int;
+
+  public type JudgeIntrinsicInfo = {
+    friendly_name: Text;
+    description: Text;
+  };
+
+  type JudgeMutableState = {
+    reputation: JudgeReputation;
+    judge_reputation_upvotes: TrieSet.Set<Principal>;
+    judge_reputation_downvotes: TrieSet.Set<Principal>;
+  };
+
   // internal function to create a shareable representation of ballots.
   func freeze_map<K, V>(mm: Map.HashMap<K, V>): [(K, V)] {
     var aa: [(K, V)] = [];
@@ -73,6 +88,7 @@ actor {
   // last bool is whether the contest is resolved.
   let contest_book = Map.HashMap<ContestId, (Contest, SubmissionMap, BallotMap, Bool)>(0, Text.equal, Text.hash);
   let ledger = Map.HashMap<Principal, PlayTokenAmount>(0, PrincipalLib.equal, PrincipalLib.hash);
+  let registered_judges = Map.HashMap<Principal, (JudgeIntrinsicInfo, JudgeMutableState)>(0, PrincipalLib.equal, PrincipalLib.hash);
 
   // returns whether creating the contest was successful
   public shared ({caller}) func make_contest(contest: Contest): async (Bool, Text) {
@@ -256,6 +272,65 @@ actor {
     };
   };
 
+  public shared ({caller}) func register_as_judge(info: JudgeIntrinsicInfo): async () {
+    let judge_state = switch (registered_judges.get(caller)) {
+      case null {
+        {
+          reputation = 0;
+          judge_reputation_downvotes = TrieSet.empty();
+          judge_reputation_upvotes = TrieSet.empty();
+        };
+      };
+      case (?(_, judge_state)) {
+        judge_state;
+      };
+    };
+    registered_judges.put(caller, (info, judge_state));
+  };
+
+  public shared query func list_judges(): async [(Judge, (JudgeIntrinsicInfo, JudgeReputation))] {
+    var aa: [(Judge, (JudgeIntrinsicInfo, JudgeReputation))] = [];
+    for ((judge, (judge_instric_info, judge_mutable_state)) in registered_judges.entries()) {
+      aa := Array.append(aa, Array.make((judge, (judge_instric_info, judge_mutable_state.reputation))));
+    };
+    return aa;
+  };
+
+  func vote_on_judge_reputation(voter: Principal, judge: Judge, is_up: Bool): (Bool, Text) {
+    let (success, message) = debit(voter, 100);
+    if (not success) {
+      return (false, message);
+    };
+
+    switch (registered_judges.get(judge)) {
+      case null {};  // nop
+      case (?(info, judge_state)) {
+        var new_upvotes: TrieSet.Set<Principal> = judge_state.judge_reputation_upvotes;
+        var new_downvotes: TrieSet.Set<Principal> = judge_state.judge_reputation_downvotes;
+        if (is_up) {
+          new_upvotes := TrieSet.put(judge_state.judge_reputation_upvotes, voter, PrincipalLib.hash(voter), PrincipalLib.equal);
+        } else {
+          new_downvotes := TrieSet.put(judge_state.judge_reputation_downvotes, voter, PrincipalLib.hash(voter), PrincipalLib.equal);
+        };
+        registered_judges.put(judge, (info,
+          {
+            reputation = TrieSet.size(new_upvotes) - TrieSet.size(new_downvotes);
+            judge_reputation_upvotes = new_upvotes;
+            judge_reputation_downvotes = new_downvotes;
+          }));
+      };
+    };
+    return (true, "")
+  };
+
+  public shared ({caller}) func upvote_judge_reputation(judge: Judge): async (Bool, Text) {
+    vote_on_judge_reputation(caller, judge, true);
+  };
+
+  public shared ({caller}) func downvote_judge_reputation(judge: Judge): async (Bool, Text) {
+    vote_on_judge_reputation(caller, judge, false);
+  };
+
   public shared ({caller}) func faucet(): async (Bool, Text) {
     // add tokens to caller if they are a new user
     switch (ledger.get(caller)) {
@@ -274,7 +349,7 @@ actor {
     };
   };
 
-  public shared query func check_balances(): async [(Principal, PlayTokenAmount)] {
+  public shared query func list_balances(): async [(Principal, PlayTokenAmount)] {
     return freeze_map(ledger);
   };
 };
