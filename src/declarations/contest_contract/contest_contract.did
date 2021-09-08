@@ -40,6 +40,10 @@ type Ballot =
  };
 service : {
   check_and_maybe_resolve: (ContestId) -> (opt ContestResults);
+  check_balances: () -> (vec record {
+                               principal;
+                               PlayTokenAmount;
+                             }) query;
   faucet: (ContestId, Decision) -> ();
   lookup: (ContestId) -> (opt ContestStatus) query;
   make_contest: (Contest) -> (bool, text);

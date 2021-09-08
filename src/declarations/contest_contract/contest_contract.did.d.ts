@@ -27,6 +27,7 @@ export interface _SERVICE {
   'check_and_maybe_resolve' : (arg_0: ContestId) => Promise<
       [] | [ContestResults]
     >,
+  'check_balances' : () => Promise<Array<[Principal, PlayTokenAmount]>>,
   'faucet' : (arg_0: ContestId, arg_1: Decision) => Promise<undefined>,
   'lookup' : (arg_0: ContestId) => Promise<[] | [ContestStatus]>,
   'make_contest' : (arg_0: Contest) => Promise<[boolean, string]>,

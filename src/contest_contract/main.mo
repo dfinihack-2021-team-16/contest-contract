@@ -154,5 +154,17 @@ actor {
 
   public shared ({caller}) func faucet(contest: ContestId, decision: Decision): async () {
     // add tokens to caller if they are a new user
-  }
+  };
+
+  func freeze_map<K, V>(mm: Map.HashMap<K, V>): [(K, V)] {
+    var aa: [(K, V)] = [];
+    for (entry in mm.entries()) {
+      aa := Array.append(aa, Array.make(entry));
+    };
+    return aa;
+  };
+
+  public shared query func check_balances(): async [(Principal, PlayTokenAmount)] {
+    return freeze_map(ledger);
+  };
 };
