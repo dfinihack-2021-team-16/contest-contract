@@ -23,8 +23,8 @@ $("create-contest").addEventListener("submit", async (ev) => {
     end = (new Date()).getTime();
   }
 
-  // Date.parse produces seconds, while the backend accepts nanoseconds
-  let end_ts = BigInt(end) * BigInt(1000000000);
+  // Date.parse produces milliseconds, while the backend accepts nanoseconds
+  let end_ts = BigInt(end) * BigInt(1000000);
 
   let [success, msg] = await contest_contract.make_contest({
     judges: [ME, ANDY],
