@@ -227,10 +227,12 @@ actor {
     };
   };
 
-  public shared query func list_active_contests(): async [Contest] {
+  public shared query func list_contests(active_only: Bool): async [Contest] {
     var contests: [Contest] = [];
     for ((_, (contest, _, _, is_resolved)) in contest_book.entries()) {
-      contests := Array.append(contests, Array.make(contest));
+      if (not active_only or not is_resolved) {
+        contests := Array.append(contests, Array.make(contest));
+      };
     };
     return contests;
   };
