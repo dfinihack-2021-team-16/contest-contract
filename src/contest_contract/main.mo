@@ -361,4 +361,18 @@ actor {
   public shared query func list_balances(): async [(Principal, PlayTokenAmount)] {
     return freeze_map(ledger);
   };
+
+  /// WARNING: For testing only! This should not exist in production.
+  public shared func delete_all_contests(): async () {
+    var keys: [ContestId] = [];
+    for ((contest_id, _) in contest_book.entries()) {
+      keys := Array.append(keys, Array.make(contest_id));
+    };
+
+    for (contest_id in keys.vals()) {
+      contest_book.delete(contest_id);
+    };
+
+    return ();
+  };
 };
