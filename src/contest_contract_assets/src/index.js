@@ -10,6 +10,7 @@ function $(id) {
 }
 
 const ME = Principal.fromText("zsszk-fc6es-7kxiu-hmzgn-lcslw-kxang-aiqg5-2q3fd-lvca7-ysjuz-tqe");
+const ANDY = Principal.fromText("jbwn2-lkucl-ao5wv-sixri-qgpw4-ibr7k-ivjpv-4imoo-gmwkb-rdnhz-yqe");
 
 $("create-contest").addEventListener("submit", async (ev) => {
   ev.preventDefault();
@@ -26,7 +27,7 @@ $("create-contest").addEventListener("submit", async (ev) => {
   let end_ts = BigInt(end) * BigInt(1000000000);
 
   let [success, msg] = await contest_contract.make_contest({
-    judges: [],
+    judges: [ME, ANDY],
     decision_time: end_ts,
     contest_id: "my-neat-contest",
     default_receiver: ME,
