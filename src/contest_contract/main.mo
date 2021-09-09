@@ -227,6 +227,14 @@ actor {
     };
   };
 
+  public shared query func list_active_contests(): async [Contest] {
+    var contests: [Contest] = [];
+    for ((_, (contest, _, _, is_resolved)) in contest_book.entries()) {
+      contests := Array.append(contests, Array.make(contest));
+    };
+    return contests;
+  };
+
   public shared ({caller}) func send(receiver: Principal, amount: PlayTokenAmount): async (Bool, Text) {
     let (success, message) = debit(caller, amount);
     if (success) {
