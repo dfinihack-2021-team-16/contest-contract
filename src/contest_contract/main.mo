@@ -135,13 +135,13 @@ actor {
     };
   };
 
-  public shared ({caller}) func vote(contest_id: ContestId, decision: Decision): async () {
+  public shared ({caller}) func vote(contest_id: ContestId, principal: Principal): async () {
     // dx note: it was hard to figure out how to handle Option types.
     switch (contest_book.get(contest_id)) {
       case null return;
       case (?(contest, submissions, ballots, is_resolved)) {
         if (not is_resolved and Array.find<Judge>(contest.judges, func (judge: Judge) { judge == caller }) != null) {
-          ballots.put(caller, {voter = caller; decision = decision;});
+          ballots.put(caller, {voter = caller; decision = ?principal;});
           return;
         } else {
           return;
